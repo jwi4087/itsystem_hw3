@@ -1,0 +1,97 @@
+# itsystem_hw3
+############imagedatagenerator 이용하여 이미지를 바꾸는 방법#########################
+############중간에 datagen 부분만 바꾸어서 training 하면 됩니다. #######################
+############vertical_flip, horizental_flip, rotation_range이용#########################
+
+from keras.datasets import mnist
+from keras.preprocessing.image import ImageDataGenerator
+from matplotlib import pyplot
+
+(X_train, y_train), (X_test, y_test) = mnist.load_data()		#mnist data load하기
+
+X_train = X_train.reshape((X_train.shape[0], 28, 28, 1))		#reshape
+X_test = X_test.reshape((X_test.shape[0], 28, 28, 1))
+
+X_train = X_train.astype('float32')		#실수로바꾸기
+X_test = X_test.astype('float32')
+
+# define data preparation
+datagen = ImageDataGenerator(vertical_flip=True)			#ImageDatGenerator 함수 사용하기(케라스내장)
+
+# fit parameters from data
+datagen.fit(X_train)										#상하좌우반전에서는 안해도 되는듯 합니다.
+
+#직접 하는 방법입니다
+for X_batch, y_batch in datagen.flow(X_train, y_train, batch_size=9):		#배치만들고
+	# create a grid of 3x3 images
+	for i in range(0, 9):
+		pyplot.subplot(330 + 1 + i)											#3x3
+		pyplot.imshow(X_batch[i].reshape(28, 28), cmap=pyplot.get_cmap('gray'))
+	# show the plot
+	pyplot.show()
+	break
+
+
+
+
+
+
+
+
+
+#################다음 코드입니다########################################
+#####################################################################
+############################코드미완성(shape)오류########################
+#####################################################################
+#미완성에 대한 피드백은 보고서에 있습니다#
+from tensorflow import keras
+from keras.datasets import mnist                                #mnist 불러오기
+from keras.models import Sequential                             #sequential 모델
+from keras.layers import Input, Dense, Activation               #다양항 function activation 등 불러오기
+from keras.optimizers import Adam, SGD                          #adam은 뭔지 모르겠음, SGD는 확률적경사하강법
+from keras.utils import to_categorical                          #원핫코딩을 위함
+
+
+(train_images, train_labels), (test_images, test_labels) = mnist.load_data(path="mnist.npz")        #MNIST읽어오기
+train_images = train_images.reshape((train_images.shape[0], -1))                                #SHAPE 바꾸기
+test_images = test_images.reshape((test_images.shape[0],-1))
+train_labels = to_categorical(train_labels)  # one-hot encoding
+test_labels = to_categorical(test_labels)  # one-hot encoding
+
+#이미지를 바꾸기 위하여
+from keras.preprocessing.image import ImageDataGenerator      
+#적용하기 지금은 수직반전
+train_gen = ImageDataGenerator(vertical_flip=True)
+test_gen = ImageDataGenerator()
+training_set= train_gen.flow(train_images, train_labels, batch_size=64)
+test_set= train_gen.flow(test_images, test_labels, batch_size=64)
+
+
+classifier.fit_generator(training_set,
+                         steps_per_epoch=60000//64,
+                         validation_data= test_set,
+                         validation_steps=10000//64,
+                         epochs=5)
+
+#아래는 강의록에 있는 DUAL LAYER 부분입니다.
+# ===========================
+# sequential model for dual layer perceptron
+# ===========================
+model = Sequential([
+    Dense(392, input_shape=(784,), activation='relu'),          #RELU쓰고 입력 28x28
+    Dense(10, activation='softmax') ])                          #multi output이므로 소프트맥스를 이용해야한다
+model.summary()                                                 #모델 요약해서 띄워준다(레이어가 어떤지)
+# ===========================
+# graph generation
+# ===========================
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])      
+#크로스엔트로피방식을 써야한다, MSE쓰면 Local minimum에 빠질 수 있다.
+# ===========================
+# training
+# ===========================
+model.fit(train_images,train_labels,epochs=5, batch_size=100)       #적용
+# ===========================
+# evaluate평가
+# ===========================
+rslt= model.evaluate(train_images, train_labels, batch_size=100)
+print("train, loss and accuracy {}".format(rslt))                   #모델저장(evaluate)
